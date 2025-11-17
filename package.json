@@ -13,7 +13,11 @@
     "react-dom": "^18.2.0",
     "leaflet": "^1.9.4",
     "react-leaflet": "^4.2.1",
-    "axios": "^1.6.2"
+    "axios": "^1.6.2",
+    "@vercel/node": "^3.0.0",
+    "chrome-aws-lambda": "^3.6.0",
+    "puppeteer-core": "^22.15.0",
+    "cheerio": "^1.0.0-rc.12"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",
