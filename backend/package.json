@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "npm run build && PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser node dist/server.js"
+    "postinstall": "node node_modules/puppeteer/install.js || true",
+    "start": "npm run build && node dist/server.js"
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.12",

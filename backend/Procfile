@@ -1,1 +1,1 @@
-web: PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser npm run build && node dist/server.js
+web: npm start
