@@ -1,0 +1,126 @@
+.earthquake-list {
+  padding: 0;
+}
+
+.sort-controls {
+  padding: 1rem 1.5rem;
+  background: #f8f9fa;
+  border-bottom: 2px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.empty-state {
+  padding: 3rem 2rem;
+  text-align: center;
+  color: #999;
+}
+
+.earthquake-item {
+  display: flex;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+}
+
+.earthquake-item:hover {
+  background: #f5f5f5;
+  transform: translateX(4px);
+}
+
+.earthquake-item.selected {
+  background: #e3f2fd;
+  border-left: 4px solid #667eea;
+}
+
+.earthquake-item.new-earthquake {
+  background: #ffebee !important;
+  border-left: 4px solid #d32f2f !important;
+  animation: newEarthquakePulse 0.5s ease-in-out;
+  box-shadow: 0 0 10px rgba(211, 47, 47, 0.3);
+}
+
+.earthquake-item.new-earthquake.selected {
+  background: #ffcdd2 !important;
+  border-left: 4px solid #d32f2f !important;
+}
+
+@keyframes newEarthquakePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 20px 5px rgba(211, 47, 47, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 10px rgba(211, 47, 47, 0.3);
+  }
+}
+
+.earthquake-magnitude {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  margin-right: 1rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.earthquake-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.earthquake-place {
+  font-size: 1rem;
+  color: #333;
+  margin: 0 0 0.5rem 0;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.earthquake-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.earthquake-time {
+  font-weight: 500;
+}
+
+.earthquake-depth {
+  opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+  .earthquake-item {
+    padding: 0.75rem 1rem;
+  }
+
+  .earthquake-magnitude {
+    width: 45px;
+    height: 45px;
+    font-size: 1rem;
+  }
+
+  .earthquake-place {
+    font-size: 0.9rem;
+  }
+}
+
