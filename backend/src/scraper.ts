@@ -55,13 +55,36 @@ export async function scrapePHIVOLCS(): Promise<PHIVOLCSEarthquake[]> {
     
     try {
       // Get the executable path from Puppeteer
-      const puppeteerExecutablePath = puppeteer.executablePath();
-      console.log('🔍 Puppeteer executable path:', puppeteerExecutablePath);
+      let executablePath = puppeteer.executablePath();
+      console.log('🔍 Default Puppeteer executable path:', executablePath);
+      
+      // On Render/Linux, try system Chromium paths first
+      if (process.platform === 'linux') {
+        const systemChromiumpaths = [
+          '/usr/bin/chromium-browser',
+          '/usr/bin/chromium',
+          '/usr/bin/google-chrome',
+          '/usr/bin/google-chrome-stable'
+        ];
+        
+        for (const path of systemChromiumpaths) {
+          try {
+            const { execSync } = await import('child_process');
+            execSync(`test -f ${path}`);
+            executablePath = path;
+            console.log(`✅ Found system Chromium at: ${path}`);
+            break;
+          } catch {
+            // Continue to next path
+          }
+        }
+      }
       
       // Windows-specific launch options
       const launchOptions: any = {
         headless: true,
         ignoreHTTPSErrors: true,
+        executablePath: executablePath,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -95,13 +118,8 @@ export async function scrapePHIVOLCS(): Promise<PHIVOLCSEarthquake[]> {
         ]
       };
       
-      // Try to use the executable path if available
-      if (puppeteerExecutablePath) {
-        launchOptions.executablePath = puppeteerExecutablePath;
-      }
-      
       browser = await puppeteer.launch(launchOptions);
-      console.log('✅ Browser launched successfully');
+      console.log('✅ Browser launched successfully with path:', executablePath);
     } catch (launchError) {
       console.error('❌ Failed to launch browser:', launchError);
       const errorMessage = launchError instanceof Error ? launchError.message : 'Unknown error';
