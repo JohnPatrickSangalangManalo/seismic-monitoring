@@ -336,6 +336,10 @@ const EarthquakeMap = ({ earthquakes, selectedEarthquake, onEarthquakeClick, new
       <MapContainer
         center={[12.8797, 121.7740]}
         zoom={6}
+        minZoom={5}
+        maxZoom={14}
+        maxBounds={[[4.0, 114.0], [21.0, 130.0]]}
+        maxBoundsViscosity={1.0}
         style={{ height: '100%', width: '100%' }}
       >
         <TileLayer
