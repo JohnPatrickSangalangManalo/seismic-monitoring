@@ -137,10 +137,37 @@ const MapUpdater = ({ earthquakes, selectedEarthquake }: MapUpdaterProps) => {
       const bounds = L.latLngBounds(
         earthquakes.map(eq => [eq.latitude, eq.longitude] as [number, number])
       );
-      map.fitBounds(bounds, { padding: [50, 50] });
+      // Ensure we stay within Philippines bounds
+      const southwest = bounds.getSouthWest();
+      const northeast = bounds.getNorthEast();
+      const constrainedSW = L.latLng(
+        Math.max(5.5, southwest.lat),
+        Math.max(117.0, southwest.lng)
+      );
+      const constrainedNE = L.latLng(
+        Math.min(19.5, northeast.lat),
+        Math.min(127.5, northeast.lng)
+      );
+      const constrainedBounds = L.latLngBounds(constrainedSW, constrainedNE);
+      map.fitBounds(constrainedBounds, { padding: [50, 50] });
       hasInitializedRef.current = true;
     }
   }, [earthquakes, map, selectedEarthquake]);
+
+  // Enforce strict zoom bounds on every zoom event
+  useEffect(() => {
+    const handleZoom = () => {
+      const zoom = map.getZoom();
+      if (zoom < 5) {
+        map.setZoom(5, { animate: false });
+      }
+    };
+
+    map.on('zoom', handleZoom);
+    return () => {
+      map.off('zoom', handleZoom);
+    };
+  }, [map]);
 
   return null;
 };
@@ -338,7 +365,7 @@ const EarthquakeMap = ({ earthquakes, selectedEarthquake, onEarthquakeClick, new
         zoom={6}
         minZoom={5}
         maxZoom={14}
-        maxBounds={[[4.0, 114.0], [21.0, 130.0]]}
+        maxBounds={[[5.5, 117.0], [19.5, 127.5]]}
         maxBoundsViscosity={1.0}
         style={{ height: '100%', width: '100%' }}
       >
