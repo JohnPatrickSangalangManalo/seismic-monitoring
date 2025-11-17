@@ -4,7 +4,6 @@ import puppeteer from 'puppeteer-core';
 import { load } from 'cheerio';
 
 export const config = {
-  runtime: 'nodejs@18.x',
   maxDuration: 60,
 };
 
