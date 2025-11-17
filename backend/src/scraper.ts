@@ -90,9 +90,53 @@ export async function scrapePHIVOLCS(): Promise<PHIVOLCSEarthquake[]> {
           '--use-mock-keychain'
         ]
       };
-      
-      browser = await puppeteer.launch(launchOptions);
-      console.log('✅ Browser launched successfully');
+
+      // Try to launch; if it fails attempt a best-effort recovery:
+      try {
+        browser = await puppeteer.launch(launchOptions);
+        console.log('✅ Browser launched successfully');
+      } catch (launchError) {
+        console.error('❌ Initial Puppeteer launch failed:', launchError instanceof Error ? launchError.message : launchError);
+        // Log the default executable path Puppeteer knows about (if any)
+        try {
+          const defaultPath = puppeteer.executablePath();
+          console.log('🔍 puppeteer.executablePath() =', defaultPath);
+        } catch (e) {
+          console.log('🔍 Could not read puppeteer.executablePath()');
+        }
+
+        // 1) If there's an env var override, try that
+        const envPath = process.env.PUPPETEER_EXECUTABLE_PATH;
+        if (envPath) {
+          console.log('🔁 Trying PUPPETEER_EXECUTABLE_PATH:', envPath);
+          try {
+            browser = await puppeteer.launch({ ...launchOptions, executablePath: envPath });
+            console.log('✅ Browser launched with PUPPETEER_EXECUTABLE_PATH');
+          } catch (envErr) {
+            console.error('❌ Launch with PUPPETEER_EXECUTABLE_PATH failed:', envErr instanceof Error ? envErr.message : envErr);
+          }
+        }
+
+        // 2) Try to run puppeteer's install script (downloads Chromium) then retry
+        if (!browser) {
+          try {
+            console.log('🔁 Attempting to run Puppeteer install script to download Chromium...');
+            const { execSync } = await import('child_process');
+            // run install script (best-effort). Allow failure without crashing here.
+            execSync('node ./node_modules/puppeteer/install.js', { stdio: 'inherit' });
+            console.log('🔁 Puppeteer install script finished, retrying launch...');
+            browser = await puppeteer.launch(launchOptions);
+            console.log('✅ Browser launched after running install script');
+          } catch (installErr) {
+            console.error('❌ Puppeteer install / retry failed:', installErr instanceof Error ? installErr.message : installErr);
+          }
+        }
+
+        // 3) If still no browser, throw a clear error so caller knows remediation steps
+        if (!browser) {
+          throw new Error('Puppeteer failed to launch. Ensure Chromium is available: run `npm install` in backend (which runs Puppeteer postinstall), or set PUPPETEER_EXECUTABLE_PATH to a valid Chrome/Chromium binary. Check server logs for details.');
+        }
+      }
     } catch (launchError) {
       console.error('❌ Failed to launch browser:', launchError);
       const errorMessage = launchError instanceof Error ? launchError.message : 'Unknown error';
