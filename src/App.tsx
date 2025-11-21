@@ -20,9 +20,11 @@ function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [newEarthquakesCount, setNewEarthquakesCount] = useState(0);
   const [newEarthquakeIds, setNewEarthquakeIds] = useState<Set<string>>(new Set());
+  const [selectedYear, setSelectedYear] = useState<number | undefined>(undefined);
+  const [selectedMonth, setSelectedMonth] = useState<number | undefined>(undefined);
   const refreshingRef = useRef(false); // Prevent concurrent refreshes
 
-  const loadEarthquakes = useCallback(async (silent = false) => {
+  const loadEarthquakes = useCallback(async (silent = false, year?: number, month?: number) => {
     // Prevent concurrent refreshes
     if (refreshingRef.current) {
       console.log('⏸️ Refresh already in progress, skipping...');
@@ -37,7 +39,7 @@ function App() {
     }
     setError(null);
     try {
-      const data = await fetchEarthquakes();
+      const data = await fetchEarthquakes(year ?? selectedYear, month ?? selectedMonth);
 
       // Remove duplicates based on id, time, and coordinates
       const uniqueData = data.filter((eq, index, self) =>
@@ -51,7 +53,13 @@ function App() {
 
       // Check for new earthquakes using functional update
       setEarthquakes((prevEarthquakes) => {
-        if (prevEarthquakes.length > 0 && !silent) {
+        // Only check for new earthquakes if:
+        // 1. This is a silent refresh (auto-refresh)
+        // 2. AND we're loading the latest data (no year/month filter specified)
+        // For historical data loads, don't mark anything as "new"
+        const isLoadingHistoricalData = (year !== undefined || month !== undefined);
+        
+        if (prevEarthquakes.length > 0 && !silent && !isLoadingHistoricalData) {
           // Compare earthquakes by their actual properties (time, location, magnitude)
           // not just ID, since IDs are regenerated on each scrape
           const newEarthquakes = uniqueData.filter(newEq => {
@@ -95,8 +103,8 @@ function App() {
             setNewEarthquakeIds(new Set());
             setNewEarthquakesCount(0);
           }
-        } else if (prevEarthquakes.length === 0) {
-          // First load - clear any existing highlights
+        } else {
+          // Loading historical data or first load - clear any existing highlights
           setNewEarthquakeIds(new Set());
           setNewEarthquakesCount(0);
         }
@@ -124,7 +132,7 @@ function App() {
       setIsRefreshing(false);
       refreshingRef.current = false;
     }
-  }, []); // Empty deps - using state setters which are stable
+  }, [selectedYear, selectedMonth]); // Include year/month dependencies
 
   // Initial load on mount only
   useEffect(() => {
@@ -132,9 +140,15 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount
 
-  // Auto-refresh every 5 minutes (only when autoRefresh is enabled)
+  // Clear new earthquake notifications when year/month changes
   useEffect(() => {
-    if (!autoRefresh) return;
+    setNewEarthquakeIds(new Set());
+    setNewEarthquakesCount(0);
+  }, [selectedYear, selectedMonth]);
+
+  // Auto-refresh every 5 minutes (only when autoRefresh is enabled and viewing latest data)
+  useEffect(() => {
+    if (!autoRefresh || selectedYear || selectedMonth) return;
 
     const interval = setInterval(() => {
       loadEarthquakes(true); // Silent refresh
@@ -142,7 +156,7 @@ function App() {
 
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoRefresh]); // Only depend on autoRefresh, loadEarthquakes is stable
+  }, [autoRefresh, selectedYear, selectedMonth]); // Only depend on these
 
   const handleEarthquakeClick = (earthquake: Earthquake) => {
     setSelectedEarthquake(earthquake);
@@ -224,7 +238,7 @@ function App() {
               <p>Real-time earthquake monitoring in the Philippines region</p>
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'flex-end' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                 <input
@@ -339,6 +353,10 @@ function App() {
               onSortChange={setSortBy}
               onFilterChange={setFilterBy}
               newEarthquakeIds={newEarthquakeIds}
+              selectedYear={selectedYear}
+              selectedMonth={selectedMonth}
+              onYearChange={setSelectedYear}
+              onMonthChange={setSelectedMonth}
             />
           )}
         </div>

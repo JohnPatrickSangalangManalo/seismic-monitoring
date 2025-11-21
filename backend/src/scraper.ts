@@ -46,11 +46,22 @@ function parseDate(dateStr: string, timeStr: string): number {
   }
 }
 
-export async function scrapePHIVOLCS(): Promise<PHIVOLCSEarthquake[]> {
+export async function scrapePHIVOLCS(year?: number, month?: number): Promise<PHIVOLCSEarthquake[]> {
   let browser: Browser | null = null;
   
   try {
     console.log('🚀 Starting PHIVOLCS scraper...');
+    
+    // Build URL based on parameters
+    let targetUrl = 'https://earthquake.phivolcs.dost.gov.ph/';
+    if (year && month) {
+      const monthName = new Date(2000, month - 1).toLocaleString('en-US', { month: 'long' });
+      targetUrl = `https://earthquake.phivolcs.dost.gov.ph/EQLatest-Monthly/${year}/${year}_${monthName}.html`;
+      console.log(`📅 Fetching earthquakes for ${monthName} ${year} from: ${targetUrl}`);
+    } else {
+      console.log('📅 Fetching latest earthquakes (default)');
+    }
+    
     console.log('Launching browser...');
     
     try {
@@ -188,7 +199,7 @@ export async function scrapePHIVOLCS(): Promise<PHIVOLCSEarthquake[]> {
     
     let response;
     try {
-      response = await page.goto('https://earthquake.phivolcs.dost.gov.ph/', {
+      response = await page.goto(targetUrl, {
         waitUntil: 'domcontentloaded',
         timeout: 90000 // Increased timeout
       });

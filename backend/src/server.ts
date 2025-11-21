@@ -64,6 +64,15 @@ app.get('/api/earthquakes', async (req, res) => {
   
   try {
     console.log('📥 Request received: Fetching earthquake data from PHIVOLCS...');
+    
+    // Get year and month from query parameters
+    const year = req.query.year ? parseInt(req.query.year as string) : undefined;
+    const month = req.query.month ? parseInt(req.query.month as string) : undefined;
+    
+    if (year || month) {
+      console.log(`📅 Filtering by: Year=${year}, Month=${month}`);
+    }
+    
     const startTime = Date.now();
     
     // Add timeout wrapper to prevent hanging
@@ -74,7 +83,7 @@ app.get('/api/earthquakes', async (req, res) => {
     });
     
     const earthquakes = await Promise.race([
-      scrapePHIVOLCS(),
+      scrapePHIVOLCS(year, month),
       timeoutPromise
     ]) as Awaited<ReturnType<typeof scrapePHIVOLCS>>;
     

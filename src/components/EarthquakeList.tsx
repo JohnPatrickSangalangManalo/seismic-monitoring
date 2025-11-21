@@ -14,6 +14,10 @@ interface EarthquakeListProps {
   onSortChange: (sort: SortOption) => void;
   onFilterChange: (filter: FilterOption) => void;
   newEarthquakeIds: Set<string>; // IDs of newly added earthquakes
+  selectedYear?: number; // Year filter from parent
+  selectedMonth?: number; // Month filter from parent
+  onYearChange?: (year: number | undefined) => void;
+  onMonthChange?: (month: number | undefined) => void;
 }
 
 const EarthquakeList = ({ 
@@ -25,7 +29,11 @@ const EarthquakeList = ({
   filterBy,
   onSortChange,
   onFilterChange,
-  newEarthquakeIds
+  newEarthquakeIds,
+  selectedYear,
+  selectedMonth,
+  onYearChange,
+  onMonthChange
 }: EarthquakeListProps) => {
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -75,15 +83,26 @@ const EarthquakeList = ({
                   fontSize: '0.8rem',
                   cursor: 'pointer',
                   background: 'rgba(255, 255, 255, 0.08)',
+                  backgroundColor: '#1e293b',
                   color: '#f1f5f9',
                   flex: 1,
                   backdropFilter: 'blur(8px)'
                 }}
               >
-                <option value="all"><i className="bi bi-list-check"></i> All</option>
-                <option value="today"><i className="bi bi-calendar-today"></i> Today Only</option>
-                <option value="week"><i className="bi bi-calendar-week"></i> This Week</option>
-                <option value="month"><i className="bi bi-calendar-month"></i> This Month</option>
+                {selectedYear || selectedMonth ? (
+                  // When year/month is selected - show limited options
+                  <>
+                    <option value="all"><i className="bi bi-list-check"></i> All</option>
+                  </>
+                ) : (
+                  // When no year/month selected - show full options
+                  <>
+                    <option value="all"><i className="bi bi-list-check"></i> All</option>
+                    <option value="today"><i className="bi bi-calendar-today"></i> Today</option>
+                    <option value="week"><i className="bi bi-calendar-week"></i> This Week</option>
+                    <option value="month"><i className="bi bi-calendar-month"></i> This Month</option>
+                  </>
+                )}
               </select>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -101,6 +120,7 @@ const EarthquakeList = ({
                   fontSize: '0.8rem',
                   cursor: 'pointer',
                   background: 'rgba(255, 255, 255, 0.08)',
+                  backgroundColor: '#1e293b',
                   color: '#f1f5f9',
                   flex: 1,
                   backdropFilter: 'blur(8px)'
@@ -110,6 +130,62 @@ const EarthquakeList = ({
                 <option value="oldest"><i className="bi bi-sort-up"></i> Oldest First</option>
                 <option value="magnitude-high"><i className="bi bi-arrow-down"></i> Highest Magnitude</option>
                 <option value="magnitude-low"><i className="bi bi-arrow-up"></i> Lowest Magnitude</option>
+              </select>
+            </div>
+            {/* Year/Month Filter */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
+              <label style={{ color: '#cbd5e1', minWidth: '40px', fontWeight: '600' }}>
+                <i className="bi bi-calendar" style={{ marginRight: '4px' }}></i>
+                Year:
+              </label>
+              <select
+                value={selectedYear || ''}
+                onChange={(e) => {
+                  const year = e.target.value ? parseInt(e.target.value) : undefined;
+                  onYearChange?.(year);
+                }}
+                style={{
+                  padding: '4px 8px',
+                  backgroundColor: '#1e293b',
+                  color: '#cbd5e1',
+                  border: '1px solid #475569',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  flex: 1
+                }}
+              >
+                <option value="">Latest</option>
+                {[2024, 2023, 2022, 2021, 2020, 2019, 2018].map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+
+              <label style={{ color: '#cbd5e1', minWidth: '40px', fontWeight: '600' }}>
+                <i className="bi bi-calendar3" style={{ marginRight: '4px' }}></i>
+                Month:
+              </label>
+              <select
+                value={selectedMonth || ''}
+                onChange={(e) => {
+                  const month = e.target.value ? parseInt(e.target.value) : undefined;
+                  onMonthChange?.(month);
+                }}
+                style={{
+                  padding: '4px 8px',
+                  backgroundColor: '#1e293b',
+                  color: '#cbd5e1',
+                  border: '1px solid #475569',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  flex: 1
+                }}
+              >
+                <option value="">All Months</option>
+                {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((month, i) => (
+                  <option key={i + 1} value={i + 1}>{month}</option>
+                ))}
               </select>
             </div>
             <div style={{ fontSize: '0.85rem', color: '#666', paddingTop: '0.25rem', borderTop: '1px solid #e0e0e0' }}>

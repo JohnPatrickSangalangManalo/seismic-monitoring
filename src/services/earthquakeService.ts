@@ -6,10 +6,19 @@ import { Earthquake } from '../types/earthquake';
 // In production, it will use the same domain as the frontend
 const BACKEND_API_URL = '/api';
 
-export const fetchEarthquakes = async (): Promise<Earthquake[]> => {
+export const fetchEarthquakes = async (year?: number, month?: number): Promise<Earthquake[]> => {
   try {
     console.log('📡 Fetching earthquakes from /api/earthquakes...');
-    const response = await axios.get<Earthquake[]>(`${BACKEND_API_URL}/earthquakes`, {
+    
+    // Build query parameters
+    const params = new URLSearchParams();
+    if (year) params.append('year', year.toString());
+    if (month) params.append('month', month.toString());
+    
+    const queryString = params.toString();
+    const url = `${BACKEND_API_URL}/earthquakes${queryString ? `?${queryString}` : ''}`;
+    
+    const response = await axios.get<Earthquake[]>(url, {
       timeout: 60000,
     });
 

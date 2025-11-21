@@ -205,7 +205,7 @@ const ZoomToEarthquake = ({ selectedEarthquake }: ZoomToEarthquakeProps) => {
         // If already zoomed out (zoom level <= 6), just pan to the new location
         if (currentZoom > 6) {
           // We're zoomed in, so zoom out first then zoom in
-          const zoomOutLevel = Math.max(8, currentZoom - 6); // Zoom out by 2 levels, minimum 4
+          const zoomOutLevel = Math.max(6, currentZoom - 4); // Zoom out by 2 levels, minimum 4
           
           console.log(`🔄 Switching (zoomed in): Zooming out to level ${zoomOutLevel}, then zooming in to level 8`);
           
@@ -335,13 +335,14 @@ const MarkerWithPopup = ({
             color: '#60a5fa',
             fontSize: '1.15rem',
             fontWeight: '700',
-            letterSpacing: '-0.5px'
+            letterSpacing: '-0.5px',
+            marginLeft:'6px'
           }}>
             <i className="bi bi-lightning-charge" style={{ marginRight: '6px', fontSize: '1.1rem' }}></i>
             <strong>Magnitude: </strong>
             {earthquake.magnitude.toFixed(1)}
           </h3>
-          <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.15)', paddingTop: '10px' }}>
+          <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.15)', paddingTop: '10px', marginLeft:'6px', marginRight:'6px' }}>
             <p style={{ margin: '6px 0', fontSize: '0.85rem', color: '#cbd5e1' }}>
               <i className="bi bi-geo-alt-fill" style={{ marginRight: '6px', color: '#f87171' }}></i>
               <strong style={{ color: '#e0e7ff' }}>Location:</strong> {earthquake.place}

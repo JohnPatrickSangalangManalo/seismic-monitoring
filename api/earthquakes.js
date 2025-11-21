@@ -38,6 +38,19 @@ module.exports = async (req, res) => {
   try {
     console.log('🚀 Starting PHIVOLCS scraper on Vercel...');
 
+    // Get query parameters
+    const { year, month } = req.query;
+    
+    // Build URL based on parameters
+    let targetUrl = 'https://earthquake.phivolcs.dost.gov.ph/';
+    if (year && month) {
+      const monthName = new Date(2000, parseInt(month) - 1).toLocaleString('en-US', { month: 'long' });
+      targetUrl = `https://earthquake.phivolcs.dost.gov.ph/EQLatest-Monthly/${year}/${year}_${monthName}.html`;
+      console.log(`📅 Fetching earthquakes for ${monthName} ${year}`);
+    } else {
+      console.log('📅 Fetching latest earthquakes (default)');
+    }
+
     // Get executable path from chrome-aws-lambda
     const executablePath = await chromium.executablePath;
     console.log('🔍 Chrome executable path:', executablePath);
@@ -59,8 +72,8 @@ module.exports = async (req, res) => {
     );
 
     // Navigate to PHIVOLCS
-    console.log('📍 Navigating to PHIVOLCS website...');
-    await page.goto('https://earthquake.phivolcs.dost.gov.ph/', {
+    console.log(`📍 Navigating to ${targetUrl}...`);
+    await page.goto(targetUrl, {
       waitUntil: 'networkidle2',
       timeout: 60000,
     });
