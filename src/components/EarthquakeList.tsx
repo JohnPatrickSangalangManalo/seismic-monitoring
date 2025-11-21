@@ -61,7 +61,7 @@ const EarthquakeList = ({
         <div className="sort-controls">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <label htmlFor="filter-select" style={{ fontSize: '0.9rem', color: '#666', minWidth: '80px' }}>
+              <label htmlFor="filter-select" style={{ fontSize: '0.8rem', color: '#cbd5e1', minWidth: '50px', fontWeight: '600' }}>
                 Filter:
               </label>
               <select
@@ -69,24 +69,25 @@ const EarthquakeList = ({
                 value={filterBy}
                 onChange={(e) => onFilterChange(e.target.value as FilterOption)}
                 style={{
-                  padding: '0.5rem',
+                  padding: '0.5rem 0.75rem',
                   borderRadius: '6px',
-                  border: '1px solid #ddd',
-                  fontSize: '0.9rem',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  fontSize: '0.8rem',
                   cursor: 'pointer',
-                  background: 'white',
-                  color: '#333',
-                  flex: 1
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  color: '#f1f5f9',
+                  flex: 1,
+                  backdropFilter: 'blur(8px)'
                 }}
               >
-                <option value="all">📋 All</option>
-                <option value="today">📅 Today Only</option>
-                <option value="week">📅 This Week</option>
-                <option value="month">📅 This Month</option>
+                <option value="all"><i className="bi bi-list-check"></i> All</option>
+                <option value="today"><i className="bi bi-calendar-today"></i> Today Only</option>
+                <option value="week"><i className="bi bi-calendar-week"></i> This Week</option>
+                <option value="month"><i className="bi bi-calendar-month"></i> This Month</option>
               </select>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <label htmlFor="sort-select" style={{ fontSize: '0.9rem', color: '#666', minWidth: '80px' }}>
+              <label htmlFor="sort-select" style={{ fontSize: '0.8rem', color: '#cbd5e1', minWidth: '50px', fontWeight: '600' }}>
                 Sort:
               </label>
               <select
@@ -94,20 +95,21 @@ const EarthquakeList = ({
                 value={sortBy}
                 onChange={(e) => onSortChange(e.target.value as SortOption)}
                 style={{
-                  padding: '0.5rem',
+                  padding: '0.5rem 0.75rem',
                   borderRadius: '6px',
-                  border: '1px solid #ddd',
-                  fontSize: '0.9rem',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  fontSize: '0.8rem',
                   cursor: 'pointer',
-                  background: 'white',
-                  color: '#333',
-                  flex: 1
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  color: '#f1f5f9',
+                  flex: 1,
+                  backdropFilter: 'blur(8px)'
                 }}
               >
-                <option value="newest">📅 Newest First</option>
-                <option value="oldest">📅 Oldest First</option>
-                <option value="magnitude-high">📊 Highest Magnitude</option>
-                <option value="magnitude-low">📊 Lowest Magnitude</option>
+                <option value="newest"><i className="bi bi-sort-down"></i> Newest First</option>
+                <option value="oldest"><i className="bi bi-sort-up"></i> Oldest First</option>
+                <option value="magnitude-high"><i className="bi bi-arrow-down"></i> Highest Magnitude</option>
+                <option value="magnitude-low"><i className="bi bi-arrow-up"></i> Lowest Magnitude</option>
               </select>
             </div>
             <div style={{ fontSize: '0.85rem', color: '#666', paddingTop: '0.25rem', borderTop: '1px solid #e0e0e0' }}>
@@ -118,7 +120,7 @@ const EarthquakeList = ({
       )}
       {sortedEarthquakes.length === 0 ? (
         <div className="empty-state">
-          <p>⚠️ No earthquake data found</p>
+          <p><i className="bi bi-exclamation-triangle" style={{ marginRight: '6px' }}></i>No earthquake data found</p>
           <p style={{ fontSize: '0.85rem', marginTop: '0.5rem', color: '#999' }}>
             The PHIVOLCS website structure may have changed, or there are no recent earthquakes to display.
           </p>
@@ -140,10 +142,10 @@ const EarthquakeList = ({
               <div className="earthquake-meta">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                   <span className="earthquake-time">
-                    📅 {formatDate(earthquake.time)}
+                    <i className="bi bi-calendar-event" style={{ marginRight: '6px' }}></i>{formatDate(earthquake.time)}
                   </span>
                   <span className="earthquake-time" style={{ fontSize: '0.85rem', opacity: 0.8 }}>
-                    🕐 {formatTime(earthquake.time)}
+                    <i className="bi bi-clock" style={{ marginRight: '6px' }}></i>{formatTime(earthquake.time)}
                   </span>
                 </div>
                 {earthquake.depth > 0 && (
@@ -151,7 +153,7 @@ const EarthquakeList = ({
                 )}
                 {(earthquake.latitude !== 0 || earthquake.longitude !== 0) && (
                   <span className="earthquake-coords" style={{ fontSize: '0.8rem', opacity: 0.7 }}>
-                    📍 {earthquake.latitude.toFixed(2)}°N, {earthquake.longitude.toFixed(2)}°E
+                    <i className="bi bi-geo-alt-fill" style={{ marginRight: '6px', color: '#f87171' }}></i>{earthquake.latitude.toFixed(2)}°N, {earthquake.longitude.toFixed(2)}°E
                   </span>
                 )}
               </div>

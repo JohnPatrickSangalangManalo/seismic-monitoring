@@ -220,7 +220,7 @@ const ZoomToEarthquake = ({ selectedEarthquake }: ZoomToEarthquakeProps) => {
           setTimeout(() => {
             map.setView(
               [selectedEarthquake.latitude, selectedEarthquake.longitude],
-              11, // Final zoom level
+              8, // Final zoom level
               { animate: true }
             );
           }, 600); // Wait 600ms for zoom out to complete
@@ -337,17 +337,22 @@ const MarkerWithPopup = ({
             fontWeight: '700',
             letterSpacing: '-0.5px'
           }}>
-            ⚡ {earthquake.magnitude.toFixed(1)}
+            <i className="bi bi-lightning-charge" style={{ marginRight: '6px', fontSize: '1.1rem' }}></i>
+            <strong>Magnitude: </strong>
+            {earthquake.magnitude.toFixed(1)}
           </h3>
           <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.15)', paddingTop: '10px' }}>
             <p style={{ margin: '6px 0', fontSize: '0.85rem', color: '#cbd5e1' }}>
-              <strong style={{ color: '#e0e7ff' }}>📍</strong> {earthquake.place}
+              <i className="bi bi-geo-alt-fill" style={{ marginRight: '6px', color: '#f87171' }}></i>
+              <strong style={{ color: '#e0e7ff' }}>Location:</strong> {earthquake.place}
             </p>
             <p style={{ margin: '6px 0', fontSize: '0.85rem', color: '#cbd5e1' }}>
-              <strong style={{ color: '#e0e7ff' }}>⏰</strong> {formatDate(earthquake.time)}
+              <i className="bi bi-clock" style={{ marginRight: '6px', color: '#fbbf24' }}></i>
+              <strong style={{ color: '#e0e7ff' }}>Time:</strong> {formatDate(earthquake.time)}
             </p>
             <p style={{ margin: '6px 0', fontSize: '0.85rem', color: '#cbd5e1' }}>
-              <strong style={{ color: '#e0e7ff' }}>📊</strong> {earthquake.depth.toFixed(1)} km
+              <i className="bi bi-arrow-down-up" style={{ marginRight: '6px', color: '#a78bfa' }}></i>
+              <strong style={{ color: '#e0e7ff' }}>Depth:</strong> {earthquake.depth.toFixed(1)} km
             </p>
           </div>
         </div>
@@ -374,8 +379,8 @@ const EarthquakeMap = ({ earthquakes, selectedEarthquake, onEarthquakeClick, new
     <div style={{ position: 'relative', height: '100%', width: '100%' }}>
       <MapContainer
         center={[12.8797, 121.7740]}
-        zoom={6}
-        minZoom={8}
+        zoom={5}
+        minZoom={5}
         maxZoom={14}
         maxBounds={[[5.5, 117.0], [19.5, 127.5]]}
         maxBoundsViscosity={1.0}

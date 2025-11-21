@@ -213,9 +213,16 @@ function App() {
     <div className="app">
       <header className="header">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-          <div>
-            <h1>🌍 SEISMIC WATCHER - Earthquake Tracker</h1>
-            <p>Real-time earthquake monitoring in the Philippines region</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <img 
+              src="/seismic-badge.svg" 
+              alt="Seismic Watcher Badge" 
+              style={{ width: '48px', height: '48px', filter: 'drop-shadow(0 0 12px rgba(96, 165, 250, 0.6))' }}
+            />
+            <div>
+              <h1>SEISMIC WATCHER - Earthquake Tracker</h1>
+              <p>Real-time earthquake monitoring in the Philippines region</p>
+            </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
