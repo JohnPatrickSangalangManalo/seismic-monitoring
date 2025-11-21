@@ -46,15 +46,15 @@ L.Icon.Default.mergeOptions({
 // Custom icon based on magnitude and whether it's new
 const getEarthquakeIcon = (magnitude: number, isNew: boolean = false) => {
   const size = Math.min(30 + magnitude * 5, 60);
-  const color = magnitude >= 6 ? '#d32f2f' : magnitude >= 5 ? '#f57c00' : magnitude >= 4 ? '#fbc02d' : '#388e3c';
+  const color = magnitude >= 6 ? '#dc2626' : magnitude >= 5 ? '#ea580c' : magnitude >= 4 ? '#eab308' : '#16a34a';
   
   // For new earthquakes, use a thicker red border and glow effect
   const borderWidth = isNew ? '4px' : '3px';
-  const borderColor = isNew ? '#ff0000' : 'white';
-  const glowEffect = isNew ? '0 0 20px rgba(255, 0, 0, 0.8), 0 0 30px rgba(255, 0, 0, 0.4)' : '';
+  const borderColor = isNew ? '#991b1b' : '#ffffff';
+  const glowEffect = isNew ? '0 0 24px rgba(220, 38, 38, 0.6), 0 0 36px rgba(220, 38, 38, 0.3)' : '';
   const boxShadow = glowEffect 
-    ? `0 2px 8px rgba(0,0,0,0.3), ${glowEffect}`
-    : '0 2px 8px rgba(0,0,0,0.3)';
+    ? `0 3px 10px rgba(0,0,0,0.25), ${glowEffect}`
+    : '0 3px 10px rgba(0,0,0,0.2)';
   
   return L.divIcon({
     className: isNew ? 'custom-earthquake-icon pulsing-marker' : 'custom-earthquake-icon',
@@ -69,8 +69,9 @@ const getEarthquakeIcon = (magnitude: number, isNew: boolean = false) => {
       align-items: center;
       justify-content: center;
       color: white;
-      font-weight: bold;
+      font-weight: 700;
       font-size: ${size * 0.4}px;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
     ">${magnitude.toFixed(1)}</div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
@@ -87,32 +88,35 @@ const MapStyleSwitcher = ({ currentStyle, onStyleChange }: MapStyleSwitcherProps
   return (
     <div style={{
       position: 'absolute',
-      bottom: '20px',
-      right: '20px',
+      bottom: '24px',
+      right: '24px',
       zIndex: 1000,
-      backgroundColor: 'white',
-      padding: '10px',
-      borderRadius: '6px',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      backdropFilter: 'blur(8px)',
+      padding: '12px',
+      borderRadius: '10px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
       display: 'flex',
-      gap: '8px',
+      gap: '6px',
       flexWrap: 'wrap',
-      maxWidth: '300px'
+      maxWidth: '320px',
+      border: '1px solid rgba(0,0,0,0.08)'
     }}>
       {Object.entries(mapStyles).map(([key, style]) => (
         <button
           key={key}
           onClick={() => onStyleChange(key as MapStyle)}
           style={{
-            padding: '6px 12px',
-            borderRadius: '4px',
-            border: currentStyle === key ? '2px solid #667eea' : '1px solid #ddd',
-            backgroundColor: currentStyle === key ? '#e8eaf6' : 'white',
-            color: currentStyle === key ? '#667eea' : '#333',
+            padding: '8px 14px',
+            borderRadius: '6px',
+            border: currentStyle === key ? '2px solid #2563eb' : '1px solid #e5e7eb',
+            backgroundColor: currentStyle === key ? '#dbeafe' : '#f9fafb',
+            color: currentStyle === key ? '#1e40af' : '#475569',
             cursor: 'pointer',
-            fontSize: '0.85rem',
+            fontSize: '0.8rem',
             fontWeight: currentStyle === key ? '600' : '500',
-            transition: 'all 0.2s'
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            boxShadow: currentStyle === key ? '0 2px 8px rgba(37, 99, 235, 0.15)' : 'none'
           }}
         >
           {style.name}
@@ -201,7 +205,7 @@ const ZoomToEarthquake = ({ selectedEarthquake }: ZoomToEarthquakeProps) => {
         // If already zoomed out (zoom level <= 6), just pan to the new location
         if (currentZoom > 6) {
           // We're zoomed in, so zoom out first then zoom in
-          const zoomOutLevel = Math.max(6, currentZoom - 2); // Zoom out by 2 levels, minimum 4
+          const zoomOutLevel = Math.max(8, currentZoom - 6); // Zoom out by 2 levels, minimum 4
           
           console.log(`🔄 Switching (zoomed in): Zooming out to level ${zoomOutLevel}, then zooming in to level 8`);
           
@@ -216,7 +220,7 @@ const ZoomToEarthquake = ({ selectedEarthquake }: ZoomToEarthquakeProps) => {
           setTimeout(() => {
             map.setView(
               [selectedEarthquake.latitude, selectedEarthquake.longitude],
-              8, // Final zoom level
+              11, // Final zoom level
               { animate: true }
             );
           }, 600); // Wait 600ms for zoom out to complete
@@ -225,7 +229,7 @@ const ZoomToEarthquake = ({ selectedEarthquake }: ZoomToEarthquakeProps) => {
           console.log(`🔄 Switching (already zoomed out): Panning to new location and zooming in to level 8`);
           map.setView(
             [selectedEarthquake.latitude, selectedEarthquake.longitude],
-            8,
+            11  ,
             { animate: true }
           );
         }
@@ -325,19 +329,27 @@ const MarkerWithPopup = ({
       }}
     >
       <PopupWithZoomOut earthquakes={earthquakes}>
-        <div style={{ minWidth: '200px' }}>
-          <h3 style={{ margin: '0 0 0.5rem 0', color: '#333' }}>
+        <div style={{ minWidth: '240px', padding: '4px 0' }}>
+          <h3 style={{ 
+            margin: '0 0 8px 0', 
+            color: '#1f2937',
+            fontSize: '1.1rem',
+            fontWeight: '700',
+            letterSpacing: '-0.5px'
+          }}>
             Magnitude {earthquake.magnitude.toFixed(1)}
           </h3>
-          <p style={{ margin: '0.25rem 0', fontSize: '0.9rem', color: '#666' }}>
-            <strong>Location:</strong> {earthquake.place}
-          </p>
-          <p style={{ margin: '0.25rem 0', fontSize: '0.9rem', color: '#666' }}>
-            <strong>Time:</strong> {formatDate(earthquake.time)}
-          </p>
-          <p style={{ margin: '0.25rem 0', fontSize: '0.9rem', color: '#666' }}>
-            <strong>Depth:</strong> {earthquake.depth.toFixed(1)} km
-          </p>
+          <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '8px' }}>
+            <p style={{ margin: '6px 0', fontSize: '0.9rem', color: '#374151' }}>
+              <strong style={{ color: '#111827' }}>📍 Location:</strong> {earthquake.place}
+            </p>
+            <p style={{ margin: '6px 0', fontSize: '0.9rem', color: '#374151' }}>
+              <strong style={{ color: '#111827' }}>⏰ Time:</strong> {formatDate(earthquake.time)}
+            </p>
+            <p style={{ margin: '6px 0', fontSize: '0.9rem', color: '#374151' }}>
+              <strong style={{ color: '#111827' }}>📊 Depth:</strong> {earthquake.depth.toFixed(1)} km
+            </p>
+          </div>
         </div>
       </PopupWithZoomOut>
     </Marker>
@@ -363,7 +375,7 @@ const EarthquakeMap = ({ earthquakes, selectedEarthquake, onEarthquakeClick, new
       <MapContainer
         center={[12.8797, 121.7740]}
         zoom={6}
-        minZoom={5}
+        minZoom={8}
         maxZoom={14}
         maxBounds={[[5.5, 117.0], [19.5, 127.5]]}
         maxBoundsViscosity={1.0}
