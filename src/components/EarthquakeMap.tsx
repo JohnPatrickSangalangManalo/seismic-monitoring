@@ -91,32 +91,32 @@ const MapStyleSwitcher = ({ currentStyle, onStyleChange }: MapStyleSwitcherProps
       bottom: '24px',
       right: '24px',
       zIndex: 1000,
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      backdropFilter: 'blur(8px)',
-      padding: '12px',
+      backgroundColor: 'rgba(15, 23, 42, 0.8)',
+      backdropFilter: 'blur(12px)',
+      padding: '10px',
       borderRadius: '10px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      boxShadow: '0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)',
       display: 'flex',
       gap: '6px',
       flexWrap: 'wrap',
-      maxWidth: '320px',
-      border: '1px solid rgba(0,0,0,0.08)'
+      maxWidth: '340px',
+      border: '1px solid rgba(255,255,255,0.1)'
     }}>
       {Object.entries(mapStyles).map(([key, style]) => (
         <button
           key={key}
           onClick={() => onStyleChange(key as MapStyle)}
           style={{
-            padding: '8px 14px',
+            padding: '8px 12px',
             borderRadius: '6px',
-            border: currentStyle === key ? '2px solid #2563eb' : '1px solid #e5e7eb',
-            backgroundColor: currentStyle === key ? '#dbeafe' : '#f9fafb',
-            color: currentStyle === key ? '#1e40af' : '#475569',
+            border: currentStyle === key ? '1.5px solid #60a5fa' : '1px solid rgba(255,255,255,0.2)',
+            backgroundColor: currentStyle === key ? 'rgba(96, 165, 250, 0.2)' : 'rgba(255,255,255,0.05)',
+            color: currentStyle === key ? '#60a5fa' : '#cbd5e1',
             cursor: 'pointer',
-            fontSize: '0.8rem',
-            fontWeight: currentStyle === key ? '600' : '500',
+            fontSize: '0.75rem',
+            fontWeight: currentStyle === key ? '700' : '500',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            boxShadow: currentStyle === key ? '0 2px 8px rgba(37, 99, 235, 0.15)' : 'none'
+            boxShadow: currentStyle === key ? 'inset 0 0 12px rgba(96, 165, 250, 0.1)' : 'none'
           }}
         >
           {style.name}
@@ -329,25 +329,25 @@ const MarkerWithPopup = ({
       }}
     >
       <PopupWithZoomOut earthquakes={earthquakes}>
-        <div style={{ minWidth: '240px', padding: '4px 0' }}>
+        <div style={{ minWidth: '260px', padding: '6px 0' }}>
           <h3 style={{ 
-            margin: '0 0 8px 0', 
-            color: '#1f2937',
-            fontSize: '1.1rem',
+            margin: '0 0 10px 0', 
+            color: '#60a5fa',
+            fontSize: '1.15rem',
             fontWeight: '700',
             letterSpacing: '-0.5px'
           }}>
-            Magnitude {earthquake.magnitude.toFixed(1)}
+            ⚡ {earthquake.magnitude.toFixed(1)}
           </h3>
-          <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '8px' }}>
-            <p style={{ margin: '6px 0', fontSize: '0.9rem', color: '#374151' }}>
-              <strong style={{ color: '#111827' }}>📍 Location:</strong> {earthquake.place}
+          <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.15)', paddingTop: '10px' }}>
+            <p style={{ margin: '6px 0', fontSize: '0.85rem', color: '#cbd5e1' }}>
+              <strong style={{ color: '#e0e7ff' }}>📍</strong> {earthquake.place}
             </p>
-            <p style={{ margin: '6px 0', fontSize: '0.9rem', color: '#374151' }}>
-              <strong style={{ color: '#111827' }}>⏰ Time:</strong> {formatDate(earthquake.time)}
+            <p style={{ margin: '6px 0', fontSize: '0.85rem', color: '#cbd5e1' }}>
+              <strong style={{ color: '#e0e7ff' }}>⏰</strong> {formatDate(earthquake.time)}
             </p>
-            <p style={{ margin: '6px 0', fontSize: '0.9rem', color: '#374151' }}>
-              <strong style={{ color: '#111827' }}>📊 Depth:</strong> {earthquake.depth.toFixed(1)} km
+            <p style={{ margin: '6px 0', fontSize: '0.85rem', color: '#cbd5e1' }}>
+              <strong style={{ color: '#e0e7ff' }}>📊</strong> {earthquake.depth.toFixed(1)} km
             </p>
           </div>
         </div>
