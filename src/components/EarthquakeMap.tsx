@@ -5,7 +5,7 @@ import { Earthquake } from '../types/earthquake';
 import 'leaflet/dist/leaflet.css';
 import './EarthquakeMap.css';
 
-type MapStyle = 'openstreetmap' | 'satellite' | 'terrain' | 'dark' | 'light';
+type MapStyle = 'openstreetmap' | 'satellite' | 'terrain' | 'dark' | 'light' | 'satellite-streets';
 
 const mapStyles = {
   openstreetmap: {
@@ -32,8 +32,15 @@ const mapStyles = {
     name: 'Light',
     url: 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
     attribution: '&copy; <a href="https://carto.com">CARTO</a>'
-  }
+  },
+
+  'satellite-streets': {
+    name: 'Satellite Streets',
+    url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
+  },
 };
+
 
 // Fix for default marker icons in React-Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -44,39 +51,44 @@ L.Icon.Default.mergeOptions({
 });
 
 // Custom icon based on magnitude and whether it's new
-const getEarthquakeIcon = (magnitude: number, isNew: boolean = false) => {
+const getEarthquakeIcon = (
+  magnitude: number,
+  isNew: boolean = false
+) => {
   const size = Math.min(30 + magnitude * 5, 60);
-  const color = magnitude >= 6 ? '#dc2626' : magnitude >= 5 ? '#ea580c' : magnitude >= 4 ? '#eab308' : '#16a34a';
-  
-  // For new earthquakes, use a thicker red border and glow effect
-  const borderWidth = isNew ? '4px' : '3px';
-  const borderColor = isNew ? '#991b1b' : '#ffffff';
-  const glowEffect = isNew ? '0 0 24px rgba(220, 38, 38, 0.6), 0 0 36px rgba(220, 38, 38, 0.3)' : '';
-  const boxShadow = glowEffect 
-    ? `0 3px 10px rgba(0,0,0,0.25), ${glowEffect}`
-    : '0 3px 10px rgba(0,0,0,0.2)';
-  
+  const color =
+    magnitude >= 6 ? '#dc2626' :
+    magnitude >= 5 ? '#ea580c' :
+    magnitude >= 4 ? '#eab308' : '#16a34a';
+
   return L.divIcon({
     className: isNew ? 'custom-earthquake-icon pulsing-marker' : 'custom-earthquake-icon',
-    html: `<div style="
-      width: ${size}px;
-      height: ${size}px;
-      border-radius: 50%;
-      background-color: ${color};
-      border: ${borderWidth} solid ${borderColor};
-      box-shadow: ${boxShadow};
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: 700;
-      font-size: ${size * 0.4}px;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-    ">${magnitude.toFixed(1)}</div>`,
+    html: `
+      <div style="
+        width: ${size}px;
+        height: ${size}px;
+        border-radius: 50%;
+        background-color: ${color};
+        border: 3px solid #fff;
+        position: relative;
+        overflow: visible;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: white;
+        font-size: ${size * 0.4}px;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      ">
+        ${magnitude.toFixed(1)}
+        <span class="pulse-wave"></span>
+      </div>
+    `,
     iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
+    iconAnchor: [size/2, size/2]
   });
 };
+
 
 // Component to handle map style switching
 interface MapStyleSwitcherProps {
@@ -194,28 +206,28 @@ const ZoomToEarthquake = ({ selectedEarthquake }: ZoomToEarthquakeProps) => {
 
   useEffect(() => {
     if (selectedEarthquake) {
-      const isSwitching = previousEarthquakeRef.current !== null && 
-                          previousEarthquakeRef.current.id !== selectedEarthquake.id;
-      
+      const isSwitching = previousEarthquakeRef.current !== null &&
+        previousEarthquakeRef.current.id !== selectedEarthquake.id;
+
       if (isSwitching) {
         // If switching to a different earthquake, check current zoom level
         const currentZoom = map.getZoom();
-        
+
         // Only zoom out if we're zoomed in (zoom level > 6)
         // If already zoomed out (zoom level <= 6), just pan to the new location
         if (currentZoom > 6) {
           // We're zoomed in, so zoom out first then zoom in
           const zoomOutLevel = Math.max(6, currentZoom - 4); // Zoom out by 2 levels, minimum 4
-          
+
           console.log(`🔄 Switching (zoomed in): Zooming out to level ${zoomOutLevel}, then zooming in to level 8`);
-          
+
           // Zoom out first
           map.setView(
             [selectedEarthquake.latitude, selectedEarthquake.longitude],
             zoomOutLevel,
             { animate: true }
           );
-          
+
           // Then zoom in after zoom out completes
           setTimeout(() => {
             map.setView(
@@ -229,7 +241,7 @@ const ZoomToEarthquake = ({ selectedEarthquake }: ZoomToEarthquakeProps) => {
           console.log(`🔄 Switching (already zoomed out): Panning to new location and zooming in to level 8`);
           map.setView(
             [selectedEarthquake.latitude, selectedEarthquake.longitude],
-            11  ,
+            8,
             { animate: true }
           );
         }
@@ -242,7 +254,7 @@ const ZoomToEarthquake = ({ selectedEarthquake }: ZoomToEarthquakeProps) => {
           { animate: true }
         );
       }
-      
+
       // Update previous earthquake reference
       previousEarthquakeRef.current = selectedEarthquake;
     }
@@ -266,7 +278,7 @@ const PopupWithZoomOut = ({ children, earthquakes }: PopupWithZoomOutProps) => {
       const bounds = L.latLngBounds(
         earthquakes.map(eq => [eq.latitude, eq.longitude] as [number, number])
       );
-      map.fitBounds(bounds, { 
+      map.fitBounds(bounds, {
         padding: [50, 50],
         animate: true
       });
@@ -278,7 +290,7 @@ const PopupWithZoomOut = ({ children, earthquakes }: PopupWithZoomOutProps) => {
   };
 
   return (
-    <Popup 
+    <Popup
       eventHandlers={{
         remove: handlePopupClose
       }}
@@ -298,13 +310,13 @@ interface MarkerWithPopupProps {
   formatDate: (timestamp: number) => string;
 }
 
-const MarkerWithPopup = ({ 
-  earthquake, 
-  isNew, 
-  isSelected, 
-  earthquakes, 
+const MarkerWithPopup = ({
+  earthquake,
+  isNew,
+  isSelected,
+  earthquakes,
   onEarthquakeClick,
-  formatDate 
+  formatDate
 }: MarkerWithPopupProps) => {
   const markerRef = useRef<L.Marker | null>(null);
 
@@ -324,25 +336,27 @@ const MarkerWithPopup = ({
       ref={markerRef}
       position={[earthquake.latitude, earthquake.longitude]}
       icon={getEarthquakeIcon(earthquake.magnitude, isNew)}
+      zIndexOffset={isSelected ? 1000 : 0} // <-- important
       eventHandlers={{
         click: () => onEarthquakeClick(earthquake),
       }}
     >
+
       <PopupWithZoomOut earthquakes={earthquakes}>
         <div style={{ minWidth: '260px', padding: '6px 0' }}>
-          <h3 style={{ 
-            margin: '0 0 10px 0', 
+          <h3 style={{
+            margin: '0 0 10px 0',
             color: '#60a5fa',
             fontSize: '1.15rem',
             fontWeight: '700',
             letterSpacing: '-0.5px',
-            marginLeft:'6px'
+            marginLeft: '6px'
           }}>
-            <i className="bi bi-lightning-charge" style={{ marginRight: '6px', fontSize: '1.1rem' }}></i>
+            <i className="bi bi-activity" style={{ marginRight: '6px', fontSize: '1.1rem' }}></i>
             <strong>Magnitude: </strong>
             {earthquake.magnitude.toFixed(1)}
           </h3>
-          <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.15)', paddingTop: '10px', marginLeft:'6px', marginRight:'6px' }}>
+          <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.15)', paddingTop: '10px', marginLeft: '6px', marginRight: '6px' }}>
             <p style={{ margin: '6px 0', fontSize: '0.85rem', color: '#cbd5e1' }}>
               <i className="bi bi-geo-alt-fill" style={{ marginRight: '6px', color: '#f87171' }}></i>
               <strong style={{ color: '#e0e7ff' }}>Location:</strong> {earthquake.place}
@@ -352,7 +366,7 @@ const MarkerWithPopup = ({
               <strong style={{ color: '#e0e7ff' }}>Time:</strong> {formatDate(earthquake.time)}
             </p>
             <p style={{ margin: '6px 0', fontSize: '0.85rem', color: '#cbd5e1' }}>
-              <i className="bi bi-arrow-down-up" style={{ marginRight: '6px', color: '#a78bfa' }}></i>
+              <i className="bi bi-layers" style={{ marginRight: '6px', color: '#a78bfa' }}></i>
               <strong style={{ color: '#e0e7ff' }}>Depth:</strong> {earthquake.depth.toFixed(1)} km
             </p>
           </div>
@@ -383,8 +397,9 @@ const EarthquakeMap = ({ earthquakes, selectedEarthquake, onEarthquakeClick, new
         zoom={5}
         minZoom={5}
         maxZoom={14}
-        maxBounds={[[5.5, 117.0], [19.5, 127.5]]}
-        maxBoundsViscosity={1.0}
+        maxBounds={[[0, 114], [25, 135]]}
+        maxBoundsViscosity={0.8}
+        worldCopyJump={true}
         style={{ height: '100%', width: '100%' }}
       >
         <TileLayer

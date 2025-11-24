@@ -53,13 +53,7 @@ function App() {
 
       // Check for new earthquakes using functional update
       setEarthquakes((prevEarthquakes) => {
-        // Only check for new earthquakes if:
-        // 1. This is a silent refresh (auto-refresh)
-        // 2. AND we're loading the latest data (no year/month filter specified)
-        // For historical data loads, don't mark anything as "new"
-        const isLoadingHistoricalData = (year !== undefined || month !== undefined);
-        
-        if (prevEarthquakes.length > 0 && !silent && !isLoadingHistoricalData) {
+        if (prevEarthquakes.length > 0 && !silent) {
           // Compare earthquakes by their actual properties (time, location, magnitude)
           // not just ID, since IDs are regenerated on each scrape
           const newEarthquakes = uniqueData.filter(newEq => {
@@ -103,8 +97,8 @@ function App() {
             setNewEarthquakeIds(new Set());
             setNewEarthquakesCount(0);
           }
-        } else {
-          // Loading historical data or first load - clear any existing highlights
+        } else if (prevEarthquakes.length === 0) {
+          // First load - clear any existing highlights
           setNewEarthquakeIds(new Set());
           setNewEarthquakesCount(0);
         }
@@ -140,23 +134,49 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount
 
+  // Auto-fill month when year is selected, or year when month is selected
+  useEffect(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
+    
+    // If year is selected but no month, auto-select current month
+    if (selectedYear && !selectedMonth) {
+      setSelectedMonth(currentMonth);
+    }
+    // If month is selected but no year, auto-select current year
+    if (selectedMonth && !selectedYear) {
+      setSelectedYear(currentYear);
+    }
+  }, [selectedYear, selectedMonth]);
+
+  // Load earthquakes when year/month filter changes
+  useEffect(() => {
+    // Only load if both year and month are selected (for historical data)
+    // or if both are cleared (for latest data)
+    if ((selectedYear && selectedMonth) || (!selectedYear && !selectedMonth)) {
+      loadEarthquakes(false, selectedYear, selectedMonth);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedYear, selectedMonth]); // Reload when filters change
+
+  // Auto-refresh every 5 minutes (only when autoRefresh is enabled)
+  useEffect(() => {
+    if (!autoRefresh) return;
+
+    const interval = setInterval(() => {
+      loadEarthquakes(true); // Silent refresh
+    }, 1 * 60 * 1000); // 5 minutes
+
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRefresh]); // Only depend on autoRefresh, loadEarthquakes is stable
+
   // Clear new earthquake notifications when year/month changes
   useEffect(() => {
     setNewEarthquakeIds(new Set());
     setNewEarthquakesCount(0);
   }, [selectedYear, selectedMonth]);
-
-  // Auto-refresh every 5 minutes (only when autoRefresh is enabled and viewing latest data)
-  useEffect(() => {
-    if (!autoRefresh || selectedYear || selectedMonth) return;
-
-    const interval = setInterval(() => {
-      loadEarthquakes(true); // Silent refresh
-    }, 5 * 60 * 1000); // 5 minutes
-
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoRefresh, selectedYear, selectedMonth]); // Only depend on these
 
   const handleEarthquakeClick = (earthquake: Earthquake) => {
     setSelectedEarthquake(earthquake);
@@ -170,8 +190,23 @@ function App() {
 
       switch (filterBy) {
         case 'today': {
-          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          return earthquakeDate >= todayStart;
+          // Check if earthquake happened today by comparing calendar dates
+          // This is more robust than time-based comparison and handles timezone issues
+          const eqYear = earthquakeDate.getFullYear();
+          const eqMonth = earthquakeDate.getMonth();
+          const eqDate = earthquakeDate.getDate();
+          const nowYear = now.getFullYear();
+          const nowMonth = now.getMonth();
+          const nowDate = now.getDate();
+          
+          // Also check if it's within the last 24 hours as a fallback
+          const hoursDiff = (now.getTime() - earthquakeDate.getTime()) / (1000 * 60 * 60);
+          const isWithin24Hours = hoursDiff >= 0 && hoursDiff <= 24;
+          
+          // Earthquake is "today" if it's the same calendar day OR within last 24 hours
+          const isToday = (eqYear === nowYear && eqMonth === nowMonth && eqDate === nowDate) || isWithin24Hours;
+          
+          return isToday;
         }
         case 'week': {
           const weekAgo = new Date(now);
@@ -238,7 +273,7 @@ function App() {
               <p>Real-time earthquake monitoring in the Philippines region</p>
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'flex-end'}}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                 <input
@@ -247,13 +282,15 @@ function App() {
                   onChange={(e) => setAutoRefresh(e.target.checked)}
                   style={{ cursor: 'pointer' }}
                 />
-                <span>🔄 Auto-refresh (5 min)</span>
+                <span>
+                <i className="bi bi-arrow-clockwise"></i> Auto-refresh (1 min)</span>
               </label>
             </div>
             {lastRefresh && (
-              <div style={{ fontSize: '0.85rem', color: '#111' }}>
+              <div style={{ fontSize: '0.85rem', color: 'Gray' }}>
                 {isRefreshing ? (
-                  <span>🔄 Refreshing...</span>
+                  <span>
+                <i className="bi bi-arrow-clockwise"></i> Refreshing...</span>
                 ) : (
                   <span>
                     Last: {lastRefresh.toLocaleTimeString()}
@@ -311,14 +348,15 @@ function App() {
                   cursor: 'pointer'
                 }}
               >
-                🔄 Try Again
+                <i className="bi bi-bootstrap-reload"></i> Try Again
               </button>
             </div>
 
           ) : (
             <>
               <button className="refresh-btn" onClick={() => loadEarthquakes(false)}>
-                🔄 Refresh Data
+              <i className="bi bi-bootstrap-reboot"></i> Refresh Data
+
               </button>
               <EarthquakeMap
                 earthquakes={filteredSortedEarthquakes}

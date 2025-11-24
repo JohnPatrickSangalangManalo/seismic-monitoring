@@ -53,6 +53,17 @@ const EarthquakeList = ({
     });
   };
 
+  const formatTimeUTC = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'UTC',
+    });
+  };
+  
+
   const getMagnitudeColor = (magnitude: number) => {
     if (magnitude >= 6) return '#d32f2f';
     if (magnitude >= 5) return '#f57c00';
@@ -90,12 +101,10 @@ const EarthquakeList = ({
                 }}
               >
                 {selectedYear || selectedMonth ? (
-                  // When year/month is selected - show limited options
                   <>
                     <option value="all"><i className="bi bi-list-check"></i> All</option>
                   </>
                 ) : (
-                  // When no year/month selected - show full options
                   <>
                     <option value="all"><i className="bi bi-list-check"></i> All</option>
                     <option value="today"><i className="bi bi-calendar-today"></i> Today</option>
@@ -221,11 +230,15 @@ const EarthquakeList = ({
                     <i className="bi bi-calendar-event" style={{ marginRight: '6px' }}></i>{formatDate(earthquake.time)}
                   </span>
                   <span className="earthquake-time" style={{ fontSize: '0.85rem', opacity: 0.8 }}>
-                    <i className="bi bi-clock" style={{ marginRight: '6px' }}></i>{formatTime(earthquake.time)}
+                    <i className="bi bi-clock" style={{ marginRight: '6px' }}></i><b>LOCAL TIME:</b> {formatTime(earthquake.time)}
+                  </span>
+                  <span className="earthquake-time" style={{ fontSize: '0.85rem', opacity: 0.8 }}>
+                    <i className="bi bi-globe" style={{ marginRight: '6px' }}></i><b>UTC TIME:</b> {formatTimeUTC(earthquake.time)}
                   </span>
                 </div>
                 {earthquake.depth > 0 && (
-                  <span className="earthquake-depth">Depth: {earthquake.depth.toFixed(1)} km</span>
+                  <span className="earthquake-depth">
+                  <i className="bi bi-layers" style={{ marginRight: '6px' }}></i><b>Depth:</b> {earthquake.depth.toFixed(1)} km</span>
                 )}
                 {(earthquake.latitude !== 0 || earthquake.longitude !== 0) && (
                   <span className="earthquake-coords" style={{ fontSize: '0.8rem', opacity: 0.7 }}>

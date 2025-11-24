@@ -16,9 +16,24 @@ export interface PHIVOLCSEarthquake {
 // Helper function to parse date strings in various formats
 function parseDate(dateStr: string, timeStr: string): number {
   try {
+    // PHIVOLCS format: "16 November 2025 - 02:35 PM" or "16 November 2025" with separate time
+    // First, try to parse the combined format if dateStr contains " - "
+    if (dateStr.includes(' - ')) {
+      const parts = dateStr.split(' - ');
+      if (parts.length === 2) {
+        const datePart = parts[0].trim(); // "16 November 2025"
+        const timePart = parts[1].trim(); // "02:35 PM"
+        const combined = `${datePart} ${timePart}`;
+        const date = new Date(combined);
+        if (!isNaN(date.getTime())) {
+          return date.getTime();
+        }
+      }
+    }
+
     // Try different date formats
     const formats = [
-      `${dateStr} ${timeStr}`, // Direct combination
+      `${dateStr} ${timeStr}`, // Direct combination: "16 November 2025 02:35 PM"
       dateStr.replace(/\//g, '-'), // Replace slashes with dashes
       dateStr,
     ];
@@ -30,18 +45,28 @@ function parseDate(dateStr: string, timeStr: string): number {
       }
     }
 
-    // Try parsing with time
+    // Try parsing with ISO format
     if (timeStr) {
+      // Try "16 November 2025T02:35 PM" format
       const combined = `${dateStr}T${timeStr}`;
       const date = new Date(combined);
       if (!isNaN(date.getTime())) {
         return date.getTime();
       }
+      
+      // Try with space instead of T
+      const combined2 = `${dateStr} ${timeStr}`;
+      const date2 = new Date(combined2);
+      if (!isNaN(date2.getTime())) {
+        return date2.getTime();
+      }
     }
 
-    // If all else fails, return current time
+    // If all else fails, return current time (but log a warning)
+    console.warn(`⚠️  Could not parse date: "${dateStr}" with time: "${timeStr}", using current time`);
     return Date.now();
-  } catch {
+  } catch (error) {
+    console.warn(`⚠️  Error parsing date: "${dateStr}" with time: "${timeStr}":`, error);
     return Date.now();
   }
 }

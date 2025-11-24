@@ -52,6 +52,7 @@
 
 .list-container {
   width: 420px;
+  height: calc(100% - 2rem);
   background: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
   backdrop-filter: blur(10px);
   border-left: 1px solid rgba(255, 255, 255, 0.1);
@@ -59,6 +60,7 @@
   overflow-y: auto;
   box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.1);
   margin-right: 1rem;
+  margin-top: 1rem;
 }
 
 .list-container::-webkit-scrollbar {
