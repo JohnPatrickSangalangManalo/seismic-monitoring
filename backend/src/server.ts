@@ -66,8 +66,12 @@ app.get('/api/earthquakes', async (req, res) => {
     console.log('📥 Request received: Fetching earthquake data from PHIVOLCS...');
     
     // Get year and month from query parameters
-    const year = req.query.year ? parseInt(req.query.year as string) : undefined;
-    const month = req.query.month ? parseInt(req.query.month as string) : undefined;
+    const yearParam = req.query.year ? parseInt(req.query.year as string) : undefined;
+    const monthParam = req.query.month ? parseInt(req.query.month as string) : undefined;
+    
+    // Validate year and month
+    const year = yearParam && !isNaN(yearParam) && yearParam >= 2000 && yearParam <= 2100 ? yearParam : undefined;
+    const month = monthParam && !isNaN(monthParam) && monthParam >= 1 && monthParam <= 12 ? monthParam : undefined;
     
     if (year || month) {
       console.log(`📅 Filtering by: Year=${year}, Month=${month}`);

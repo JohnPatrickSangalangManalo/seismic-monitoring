@@ -145,13 +145,27 @@ interface MapUpdaterProps {
 
 const MapUpdater = ({ earthquakes, selectedEarthquake }: MapUpdaterProps) => {
   const map = useMap();
-  const hasInitializedRef = useRef(false);
+  const previousEarthquakesRef = useRef<Earthquake[]>([]);
 
   useEffect(() => {
-    // Only fit bounds on initial load, not when earthquakes update
-    if (earthquakes.length > 0 && !hasInitializedRef.current && !selectedEarthquake) {
+    // Filter out invalid coordinates
+    const validEarthquakes = earthquakes.filter(eq => 
+      eq.latitude !== 0 && eq.longitude !== 0 &&
+      eq.latitude >= -90 && eq.latitude <= 90 &&
+      eq.longitude >= -180 && eq.longitude <= 180
+    );
+
+    // Check if this is a significant data change (different set of earthquakes)
+    const isSignificantChange = 
+      previousEarthquakesRef.current.length === 0 ||
+      validEarthquakes.length === 0 ||
+      (validEarthquakes.length > 0 && previousEarthquakesRef.current.length > 0 &&
+       validEarthquakes[0].id !== previousEarthquakesRef.current[0].id);
+
+    // Fit bounds when data changes significantly (new load, filter change, etc.)
+    if (validEarthquakes.length > 0 && (isSignificantChange || !selectedEarthquake)) {
       const bounds = L.latLngBounds(
-        earthquakes.map(eq => [eq.latitude, eq.longitude] as [number, number])
+        validEarthquakes.map(eq => [eq.latitude, eq.longitude] as [number, number])
       );
       // Ensure we stay within Philippines bounds
       const southwest = bounds.getSouthWest();
@@ -165,9 +179,10 @@ const MapUpdater = ({ earthquakes, selectedEarthquake }: MapUpdaterProps) => {
         Math.min(127.5, northeast.lng)
       );
       const constrainedBounds = L.latLngBounds(constrainedSW, constrainedNE);
-      map.fitBounds(constrainedBounds, { padding: [50, 50] });
-      hasInitializedRef.current = true;
+      map.fitBounds(constrainedBounds, { padding: [50, 50], animate: false });
     }
+
+    previousEarthquakesRef.current = validEarthquakes;
   }, [earthquakes, map, selectedEarthquake]);
 
   // Enforce strict zoom bounds on every zoom event
@@ -409,21 +424,28 @@ const EarthquakeMap = ({ earthquakes, selectedEarthquake, onEarthquakeClick, new
         />
         <MapUpdater earthquakes={earthquakes} selectedEarthquake={selectedEarthquake} />
         <ZoomToEarthquake selectedEarthquake={selectedEarthquake} />
-        {earthquakes.map((earthquake) => {
-          const isNew = newEarthquakeIds.has(earthquake.id);
-          const isSelected = selectedEarthquake?.id === earthquake.id;
-          return (
-            <MarkerWithPopup
-              key={earthquake.id}
-              earthquake={earthquake}
-              isNew={isNew}
-              isSelected={isSelected}
-              earthquakes={earthquakes}
-              onEarthquakeClick={onEarthquakeClick}
-              formatDate={formatDate}
-            />
-          );
-        })}
+        {earthquakes
+          .filter(eq => {
+            // Filter out invalid coordinates (0,0 or out of bounds)
+            return eq.latitude !== 0 && eq.longitude !== 0 &&
+                   eq.latitude >= -90 && eq.latitude <= 90 &&
+                   eq.longitude >= -180 && eq.longitude <= 180;
+          })
+          .map((earthquake) => {
+            const isNew = newEarthquakeIds.has(earthquake.id);
+            const isSelected = selectedEarthquake?.id === earthquake.id;
+            return (
+              <MarkerWithPopup
+                key={earthquake.id}
+                earthquake={earthquake}
+                isNew={isNew}
+                isSelected={isSelected}
+                earthquakes={earthquakes}
+                onEarthquakeClick={onEarthquakeClick}
+                formatDate={formatDate}
+              />
+            );
+          })}
       </MapContainer>
       <MapStyleSwitcher currentStyle={mapStyle} onStyleChange={setMapStyle} />
     </div>

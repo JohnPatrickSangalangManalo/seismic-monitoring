@@ -79,10 +79,21 @@ export async function scrapePHIVOLCS(year?: number, month?: number): Promise<PHI
     
     // Build URL based on parameters
     let targetUrl = 'https://earthquake.phivolcs.dost.gov.ph/';
+    let useMonthlyUrl = false;
+    
     if (year && month) {
+      // Convert month number (1-12) to month name (e.g., "November")
       const monthName = new Date(2000, month - 1).toLocaleString('en-US', { month: 'long' });
+      // PHIVOLCS URL format: /EQLatest-Monthly/{year}/{year}_{MonthName}.html
       targetUrl = `https://earthquake.phivolcs.dost.gov.ph/EQLatest-Monthly/${year}/${year}_${monthName}.html`;
+      useMonthlyUrl = true;
       console.log(`📅 Fetching earthquakes for ${monthName} ${year} from: ${targetUrl}`);
+    } else if (year) {
+      // If only year is provided, use default URL but filter by year later
+      console.log(`📅 Fetching earthquakes for year ${year} (using default URL, will filter results)`);
+    } else if (month) {
+      const monthName = new Date(2000, month - 1).toLocaleString('en-US', { month: 'long' });
+      console.log(`📅 Fetching earthquakes for ${monthName} (using default URL, will filter results)`);
     } else {
       console.log('📅 Fetching latest earthquakes (default)');
     }
@@ -251,11 +262,55 @@ export async function scrapePHIVOLCS(year?: number, month?: number): Promise<PHI
       }
     }
 
-    if (response && response.status() && response.status() !== 200) {
-      console.log(`⚠️  Page returned status ${response.status()}, but continuing anyway...`);
+    // Check response status
+    if (response) {
+      const status = response.status();
+      console.log(`📊 Page response status: ${status}`);
+      
+      if (status === 404) {
+        // If monthly URL returns 404, fall back to default URL
+        if (useMonthlyUrl && year && month) {
+          console.log(`⚠️  Monthly URL returned 404, falling back to default URL and filtering...`);
+          targetUrl = 'https://earthquake.phivolcs.dost.gov.ph/';
+          useMonthlyUrl = false;
+          try {
+            response = await page.goto(targetUrl, {
+              waitUntil: 'domcontentloaded',
+              timeout: 90000
+            });
+            console.log(`✅ Fallback to default URL successful`);
+            if (response) {
+              const fallbackStatus = response.status();
+              console.log(`📊 Fallback page response status: ${fallbackStatus}`);
+            }
+          } catch (fallbackError) {
+            console.error('❌ Fallback also failed:', fallbackError);
+            throw new Error(`Monthly page not found and fallback failed. The URL format might be incorrect.`);
+          }
+        } else {
+          throw new Error(`Page not found (404): ${targetUrl}`);
+        }
+      } else if (status !== 200) {
+        console.log(`⚠️  Page returned status ${status}, but continuing anyway...`);
+      }
     }
 
     console.log('✅ Page loaded successfully');
+    
+    // Verify we're on the correct page
+    const currentUrl = page.url();
+    console.log(`🔍 Current page URL: ${currentUrl}`);
+    console.log(`🔍 Expected URL: ${targetUrl}`);
+    
+    // Get page title for debugging
+    const pageTitle = await page.title();
+    console.log(`📄 Page title: ${pageTitle}`);
+    
+    // Check if we're on the correct page
+    if (year && month && !currentUrl.includes('EQLatest-Monthly') && useMonthlyUrl) {
+      console.log(`⚠️  Warning: Expected monthly URL but got different page.`);
+      console.log(`⚠️  This might mean the monthly URL format is incorrect or the page doesn't exist.`);
+    }
     
     // Wait for content to load (especially if it's JavaScript-rendered)
     await new Promise(resolve => setTimeout(resolve, 5000));
@@ -292,6 +347,20 @@ export async function scrapePHIVOLCS(year?: number, month?: number): Promise<PHI
     console.log('🔍 Method 1: Parsing tables...');
     const tables = $('table');
     console.log(`Found ${tables.length} table(s)`);
+    
+    // Log all table structures for debugging
+    if (tables.length > 0) {
+      tables.each((i, table) => {
+        const rows = $(table).find('tr');
+        console.log(`  Table ${i + 1}: ${rows.length} rows`);
+        if (rows.length > 0) {
+          // Log first row structure
+          const firstRow = $(rows[0]);
+          const firstRowText = firstRow.text().trim();
+          console.log(`    First row text (first 200 chars): ${firstRowText.substring(0, 200)}`);
+        }
+      });
+    }
     
     // Also check for div-based layouts
     const divsWithData = $('div').filter((i, el) => {
@@ -332,10 +401,15 @@ export async function scrapePHIVOLCS(year?: number, month?: number): Promise<PHI
                           /date|time|magnitude|location|latitude|longitude|depth|header|seismological|observation/i.test(text)
                         );
         
-        // Need at least 6 cells for the PHIVOLCS format
-        if (isHeader || cells.length < 6) {
-          if (cells.length > 0 && !isHeader) {
-            console.log(`    ⚠️  Skipping row ${rowIndex}: Only ${cells.length} cells (need at least 6). Cells:`, cellTexts.slice(0, 3));
+        // Need at least 3 cells (date, magnitude, location minimum)
+        // But prefer 6+ cells for complete data
+        if (isHeader) {
+          return;
+        }
+        
+        if (cells.length < 3) {
+          if (cells.length > 0) {
+            console.log(`    ⚠️  Skipping row ${rowIndex}: Only ${cells.length} cells (need at least 3). Cells:`, cellTexts);
           }
           return;
         }
@@ -512,7 +586,7 @@ export async function scrapePHIVOLCS(year?: number, month?: number): Promise<PHI
           // Log parsed data for debugging
           console.log(`    🔍 Row ${rowIndex}: Lat=${latitude}, Lon=${longitude}, Mag=${magnitude}, Depth=${depth}, Place="${place.substring(0, 40)}"`);
           
-          // Validate magnitude first
+          // Validate magnitude first - be more lenient
           if (magnitude === 0 || isNaN(magnitude) || magnitude < 0 || magnitude > 10) {
             // Log why we're skipping this row
             if (cellTexts.length > 0) {
@@ -521,14 +595,33 @@ export async function scrapePHIVOLCS(year?: number, month?: number): Promise<PHI
             return;
           }
           
-          // Validate Philippines coordinates (with some tolerance)
+          // Validate Philippines coordinates - be more lenient
           // Philippines approximate bounds: Lat 4-21°N, Lon 116-127°E
-          // But allow slightly outside for edge cases
-          if (latitude === 0 || longitude === 0 || 
-              latitude < 3 || latitude > 22 || 
-              longitude < 115 || longitude > 128) {
-            console.log(`    ⚠️  Row ${rowIndex}: Invalid Philippines coordinates: Lat ${latitude}, Lon ${longitude}. Skipping.`);
-            return;
+          // But allow wider range for edge cases and data quality issues
+          const hasValidCoords = latitude !== 0 && longitude !== 0 && 
+                                 latitude >= 0 && latitude <= 90 && 
+                                 longitude >= 0 && longitude <= 180;
+          
+          // If coordinates are missing but we have magnitude and place, still include it
+          // (coordinates might be in a different format or missing)
+          if (!hasValidCoords) {
+            // Only skip if we're really sure it's wrong (completely out of bounds)
+            if (latitude < 0 || latitude > 90 || longitude < 0 || longitude > 180) {
+              console.log(`    ⚠️  Row ${rowIndex}: Invalid coordinates: Lat ${latitude}, Lon ${longitude}. Skipping.`);
+              return;
+            }
+            // If coordinates are 0,0 but we have other data, use default Philippines center
+            if (latitude === 0 && longitude === 0) {
+              console.log(`    ⚠️  Row ${rowIndex}: Missing coordinates, using default Philippines center`);
+              latitude = 12.8797; // Philippines approximate center
+              longitude = 121.7740;
+            }
+          }
+          
+          // Additional check: if coordinates are way outside Philippines but valid, still include
+          // (might be data entry errors, but better to show something than nothing)
+          if (latitude < 3 || latitude > 22 || longitude < 115 || longitude > 128) {
+            console.log(`    ⚠️  Row ${rowIndex}: Coordinates outside typical Philippines range (Lat ${latitude}, Lon ${longitude}), but including anyway`);
           }
 
           const time = parseDate(dateStr, timeStr);
@@ -553,6 +646,25 @@ export async function scrapePHIVOLCS(year?: number, month?: number): Promise<PHI
     });
     
     console.log(`✅ Method 1 found ${earthquakes.length} earthquakes`);
+    
+    // Log URL and parameters for debugging
+    if (year && month) {
+      console.log(`🔍 Debug: Scraped from URL for ${year}-${month}, found ${earthquakes.length} earthquakes`);
+    }
+    
+    // If no earthquakes found, log more details
+    if (earthquakes.length === 0) {
+      console.log(`⚠️  No earthquakes found in tables. Checking page content...`);
+      const bodyText = $('body').text();
+      const hasEarthquakeKeywords = /earthquake|magnitude|seismic|quake/i.test(bodyText);
+      const hasNumbers = /\d+\.\d+/.test(bodyText);
+      console.log(`  Page has earthquake keywords: ${hasEarthquakeKeywords}`);
+      console.log(`  Page has numbers: ${hasNumbers}`);
+      console.log(`  Body text length: ${bodyText.length}`);
+      if (bodyText.length > 0) {
+        console.log(`  Body text sample (first 500 chars): ${bodyText.substring(0, 500)}`);
+      }
+    }
 
     // Method 2: Try to find data in divs or other structures
     if (earthquakes.length === 0) {
@@ -645,6 +757,16 @@ export async function scrapePHIVOLCS(year?: number, month?: number): Promise<PHI
       const pageText = await page.evaluate(() => document.body.innerText);
       console.log('📄 Page text sample (first 1000 chars):', pageText.substring(0, 1000));
       
+      // Check if page says "not found" or similar
+      if (pageText.toLowerCase().includes('not found') || 
+          pageText.toLowerCase().includes('404') ||
+          pageText.toLowerCase().includes('page not found')) {
+        console.error('❌ Page appears to be a "not found" page');
+        if (year && month) {
+          console.log('💡 Monthly URL might be incorrect. URL format might need adjustment.');
+        }
+      }
+      
       // Try to find magnitude patterns in text
       const magnitudeMatches = pageText.match(/\b(Magnitude|Mag\.?|M)\s*:?\s*([\d.]+)/gi);
       if (magnitudeMatches) {
@@ -660,8 +782,15 @@ export async function scrapePHIVOLCS(year?: number, month?: number): Promise<PHI
       console.log('💡 Tip: Check the PHIVOLCS website manually to verify the current structure.');
       console.log('💡 The HTML structure may have changed. Check backend console for HTML sample.');
       
-      // Return empty array instead of throwing error
-      // This allows the frontend to show a helpful message
+      // If we used a specific URL and got no data, try fallback
+      if (year && month && targetUrl.includes('EQLatest-Monthly')) {
+        console.log(`⚠️  No data found from monthly URL. This might mean:`);
+        console.log(`   1. The URL format is incorrect`);
+        console.log(`   2. The monthly page structure is different`);
+        console.log(`   3. The monthly page doesn't exist for this date`);
+        console.log(`💡 Returning empty array. Try using the default URL and filtering instead.`);
+      }
+      
       return [];
     }
 
@@ -670,10 +799,73 @@ export async function scrapePHIVOLCS(year?: number, month?: number): Promise<PHI
       index === self.findIndex(e => e.id === eq.id)
     );
     
-    uniqueEarthquakes.sort((a, b) => b.time - a.time);
+    // Filter by year and month if specified
+    let filteredEarthquakes = uniqueEarthquakes;
     
-    console.log(`✅ Successfully scraped ${uniqueEarthquakes.length} unique earthquakes`);
-    return uniqueEarthquakes;
+    if (year || month) {
+      const beforeFilterCount = uniqueEarthquakes.length;
+      const sampleDates: string[] = [];
+      
+      // Always filter by year/month, even if we used a monthly URL
+      // This ensures we get the correct data regardless of URL format issues
+      filteredEarthquakes = uniqueEarthquakes.filter((eq) => {
+        const eqDate = new Date(eq.time);
+        const eqYear = eqDate.getFullYear();
+        const eqMonth = eqDate.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
+        
+        // Log first few dates for debugging
+        if (sampleDates.length < 10) {
+          const dateStr = eqDate.toISOString().substring(0, 10);
+          sampleDates.push(`${dateStr} (${eqYear}-${String(eqMonth).padStart(2, '0')})`);
+        }
+        
+        if (year && month) {
+          // Both year and month specified - must match exactly
+          const matches = eqYear === year && eqMonth === month;
+          if (!matches && sampleDates.length <= 1) {
+            // Log why first few don't match
+            console.log(`    Date mismatch: ${eqYear}-${String(eqMonth).padStart(2, '0')} vs ${year}-${String(month).padStart(2, '0')}`);
+          }
+          return matches;
+        } else if (year) {
+          // Only year specified - match year
+          return eqYear === year;
+        } else if (month) {
+          // Only month specified - match month (any year)
+          return eqMonth === month;
+        }
+        return true;
+      });
+      
+      console.log(`📅 Filtering: ${beforeFilterCount} → ${filteredEarthquakes.length} earthquakes`);
+      console.log(`📅 Filter criteria: Year=${year || 'any'}, Month=${month || 'any'}`);
+      if (sampleDates.length > 0) {
+        console.log(`📅 Sample dates from earthquakes (first 10): ${sampleDates.slice(0, 10).join(', ')}`);
+      }
+      
+      // If filtering resulted in 0 results, log a warning and return all data if dates seem invalid
+      if (filteredEarthquakes.length === 0 && beforeFilterCount > 0) {
+        console.log(`⚠️  Warning: Filtering removed all ${beforeFilterCount} earthquakes.`);
+        
+        // Check if dates are all current timestamp (indicates parsing failure)
+        const now = Date.now();
+        const allRecentDates = uniqueEarthquakes.every(eq => Math.abs(eq.time - now) < 60000);
+        
+        if (allRecentDates) {
+          console.log(`⚠️  All dates appear to be current timestamp - date parsing may have failed`);
+          console.log(`⚠️  Returning all ${beforeFilterCount} earthquakes without filtering`);
+          filteredEarthquakes = uniqueEarthquakes;
+        } else {
+          console.log(`⚠️  This might indicate date parsing issues or the selected period has no data.`);
+          console.log(`⚠️  Sample timestamps: ${uniqueEarthquakes.slice(0, 3).map(eq => new Date(eq.time).toISOString()).join(', ')}`);
+        }
+      }
+    }
+    
+    filteredEarthquakes.sort((a, b) => b.time - a.time);
+    
+    console.log(`✅ Successfully scraped ${filteredEarthquakes.length} unique earthquakes`);
+    return filteredEarthquakes;
 
   } catch (error) {
     console.error('❌ Error scraping PHIVOLCS:', error);

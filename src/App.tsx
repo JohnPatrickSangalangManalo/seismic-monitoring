@@ -52,8 +52,10 @@ function App() {
       );
 
       // Check for new earthquakes using functional update
+      // Only mark as new if this is a silent refresh (auto-refresh), not when loading new data
       setEarthquakes((prevEarthquakes) => {
-        if (prevEarthquakes.length > 0 && !silent) {
+        if (prevEarthquakes.length > 0 && !silent && !year && !month) {
+          // Only check for new earthquakes during auto-refresh, not when loading filtered data
           // Compare earthquakes by their actual properties (time, location, magnitude)
           // not just ID, since IDs are regenerated on each scrape
           const newEarthquakes = uniqueData.filter(newEq => {
@@ -97,8 +99,8 @@ function App() {
             setNewEarthquakeIds(new Set());
             setNewEarthquakesCount(0);
           }
-        } else if (prevEarthquakes.length === 0) {
-          // First load - clear any existing highlights
+        } else {
+          // First load or filtered load - clear any existing highlights
           setNewEarthquakeIds(new Set());
           setNewEarthquakesCount(0);
         }
@@ -150,13 +152,22 @@ function App() {
     }
   }, [selectedYear, selectedMonth]);
 
-  // Load earthquakes when year/month filter changes
+  // Load earthquakes when year/month filter changes - with debouncing to prevent lag
   useEffect(() => {
-    // Only load if both year and month are selected (for historical data)
-    // or if both are cleared (for latest data)
-    if ((selectedYear && selectedMonth) || (!selectedYear && !selectedMonth)) {
-      loadEarthquakes(false, selectedYear, selectedMonth);
-    }
+    // Clear new earthquake highlights when filters change
+    setNewEarthquakeIds(new Set());
+    setNewEarthquakesCount(0);
+    
+    // Debounce the loading to prevent lag when rapidly changing filters
+    const timeoutId = setTimeout(() => {
+      // Only load if both year and month are selected (for historical data)
+      // or if both are cleared (for latest data)
+      if ((selectedYear && selectedMonth) || (!selectedYear && !selectedMonth)) {
+        loadEarthquakes(false, selectedYear, selectedMonth);
+      }
+    }, 300); // 300ms debounce
+    
+    return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedYear, selectedMonth]); // Reload when filters change
 
@@ -172,18 +183,21 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRefresh]); // Only depend on autoRefresh, loadEarthquakes is stable
 
-  // Clear new earthquake notifications when year/month changes
-  useEffect(() => {
-    setNewEarthquakeIds(new Set());
-    setNewEarthquakesCount(0);
-  }, [selectedYear, selectedMonth]);
+  // This is now handled in the year/month change effect above
 
   const handleEarthquakeClick = (earthquake: Earthquake) => {
     setSelectedEarthquake(earthquake);
   };
 
   // Filter earthquakes by time period
+  // Skip filterBy if year/month is selected (backend already filtered)
   const filteredEarthquakes = useMemo(() => {
+    // If year/month is selected, backend already filtered, so just return all
+    if (selectedYear || selectedMonth) {
+      return earthquakes;
+    }
+
+    // Otherwise, apply frontend filter
     return earthquakes.filter((eq) => {
       const earthquakeDate = new Date(eq.time);
       const now = new Date();
@@ -228,7 +242,7 @@ function App() {
           return true;
       }
     });
-  }, [earthquakes, filterBy]);
+  }, [earthquakes, filterBy, selectedYear, selectedMonth]);
 
   // Sort earthquakes based on selected option
   const filteredSortedEarthquakes = useMemo(() => {
